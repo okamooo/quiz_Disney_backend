@@ -1,4 +1,4 @@
-package com.example.quiz_backend.Entity;
+package com.example.quiz_backend.entity;
 
 import java.time.LocalDateTime;
 

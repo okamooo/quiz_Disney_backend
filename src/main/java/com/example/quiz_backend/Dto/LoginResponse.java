@@ -1,9 +1,9 @@
-package com.example.quiz_backend.Dto;
+package com.example.quiz_backend.dto;
 
 import lombok.Data;
 
 @Data
 public class LoginResponse {
-    private String userId; // ユーザー名 or メールアドレス
-    private String messeage;
+    private boolean success;
+    private String message;
 }

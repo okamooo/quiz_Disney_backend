@@ -7,20 +7,23 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.quiz_backend.Dto.LoginRequest;
-import com.example.quiz_backend.Repository.UserRepository;
+import com.example.quiz_backend.dto.LoginRequest;
+import com.example.quiz_backend.dto.LoginResponse;
+import com.example.quiz_backend.service.LoginService;
 
 @RestController
 @RequestMapping("/api/v1/quiz")
 @CrossOrigin(origins = "http://localhost:5173")
-// ログイン関連のエンドポイントをここに実装予定
 public class LoginController {
 
-    @AutoWired
-    private UserRepository userRepository;
+    private final LoginService loginService;
+
+    public LoginController(LoginService loginService) {
+        this.loginService = loginService;
+    }
 
     @PostMapping("/login")
-    public ResponseEntity<Loginresponse> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(new Loginresponse());
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(loginService.login(request));
     }
 }
