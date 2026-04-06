@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/quiz")
-@CrossOrigin(origins = "http://localhost:5173") // フロントエンドからのアクセスを許可
+@CrossOrigin(origins = "http://localhost:5173")
+// フロントエンドからのアクセスを許可
 public class QuizConrtroller {
 
     @GetMapping("/test")

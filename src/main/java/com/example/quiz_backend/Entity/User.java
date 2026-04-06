@@ -22,6 +22,7 @@ public class User {
 
     private String name; // ユーザー名
     private String email; // メールアドレス
+    private String userId; // ログインID
     private String password; // パスワード
 
     @Column(name = "created_at", updatable = false)
