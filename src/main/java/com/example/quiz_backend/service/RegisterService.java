@@ -25,28 +25,40 @@ public class RegisterService {
             return response;
         }
 
-        String loginId = request.getLoginId() == null ? null : request.getLoginId().trim();
+        String userId = request.getUserId() == null ? null : request.getUserId().trim();
+        String email = request.getEmail() == null ? null : request.getEmail().trim();
         String password = request.getPassword() == null ? null : request.getPassword().trim();
 
-        if (loginId == null || loginId.isBlank() || password == null || password.isBlank()) {
+        if (userId == null || userId.isBlank() || email == null || email.isBlank()
+                || password == null || password.isBlank()) {
             response.setSuccess(false);
             response.setMessage("ログインIDとパスワードを入力してください。");
             return response;
         }
 
-        boolean isEmailLogin = isEmailFormat(loginId);
+        if (!isEmailFormat(email)) {
+            response.setSuccess(false);
+            response.setMessage("メールアドレスの形式が正しくありません。");
+            return response;
+        }
 
-        if (userRepository.existsByUserId(loginId) || (isEmailLogin && userRepository.existsByEmail(loginId))) {
+        if (userRepository.existsByUserId(userId)) {
             response.setSuccess(false);
             response.setMessage("そのログインIDはすでに登録されています。");
             return response;
         }
 
+        if (userRepository.existsByEmail(email)) {
+            response.setSuccess(false);
+            response.setMessage("そのメールアドレスはすでに登録されています。");
+            return response;
+        }
+
         User user = new User();
-        user.setUserId(loginId);
+        user.setUserId(userId);
         user.setPassword(password);
-        user.setName(loginId);
-        user.setEmail(isEmailLogin ? loginId : null);
+        user.setName(userId);
+        user.setEmail(email);
 
         userRepository.save(user);
 
