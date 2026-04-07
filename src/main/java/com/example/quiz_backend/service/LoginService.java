@@ -1,16 +1,22 @@
 package com.example.quiz_backend.service;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 
 import com.example.quiz_backend.dto.LoginRequest;
 import com.example.quiz_backend.dto.LoginResponse;
+import com.example.quiz_backend.entity.User;
+import com.example.quiz_backend.repository.UserRepository;
 
 @Service
 public class LoginService {
 
-    private static final String DEMO_EMAIL = "test@example.com";
-    private static final String DEMO_USER_ID = "testuser";
-    private static final String DEMO_PASSWORD = "password123";
+    private final UserRepository userRepository;
+
+    public LoginService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     public LoginResponse login(LoginRequest request) {
         LoginResponse response = new LoginResponse();
@@ -22,7 +28,7 @@ public class LoginService {
         }
 
         String loginId = request.getLoginId() == null ? null : request.getLoginId().trim();
-        String password = request.getPassword();
+        String password = request.getPassword() == null ? null : request.getPassword().trim();
 
         if (loginId == null || loginId.isBlank() || password == null || password.isBlank()) {
             response.setSuccess(false);
@@ -30,18 +36,9 @@ public class LoginService {
             return response;
         }
 
-        boolean isEmailLogin = isEmailFormat(loginId);
-        boolean isMatched;
+        Optional<User> user = findUserByLoginId(loginId);
 
-        if (isEmailLogin) {
-            isMatched = DEMO_EMAIL.equals(loginId)
-                    && DEMO_PASSWORD.equals(password);
-        } else {
-            isMatched = DEMO_USER_ID.equals(loginId)
-                    && DEMO_PASSWORD.equals(password);
-        }
-
-        if (isMatched) {
+        if (user.isPresent() && password.equals(user.get().getPassword())) {
             response.setSuccess(true);
             response.setMessage("ログインに成功しました。");
         } else {
@@ -50,6 +47,14 @@ public class LoginService {
         }
 
         return response;
+    }
+
+    private Optional<User> findUserByLoginId(String loginId) {
+        if (isEmailFormat(loginId)) {
+            return userRepository.findByEmail(loginId);
+        }
+
+        return userRepository.findByUserId(loginId);
     }
 
     private boolean isEmailFormat(String loginId) {
