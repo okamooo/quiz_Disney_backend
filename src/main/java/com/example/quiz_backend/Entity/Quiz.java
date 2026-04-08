@@ -20,17 +20,28 @@ public class Quiz {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // クイズID
 
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private Category category; // カテゴリID
+    @Column(name = "category_id")
+    private Long categoryId;
 
     @Column(columnDefinition = "TEXT")
     private String phrase; // フレーズ全文
+
+    @Column(columnDefinition = "TEXT")
+    private String translation; // フレーズの意味
 
     @Column(name = "question_word")
     private String questionWord; // 問題にする単語
 
     private String meaning; // 正しい意味
+
+    @Column(name = "wrong_word1")
+    private String wrongAnswer1; // 選択肢1
+
+    @Column(name = "wrong_word2")
+    private String wrongAnswer2; // 選択肢2
+
+    @Column(name = "wrong_word3")
+    private String wrongAnswer3; // 選択肢3
 
     @Column(columnDefinition = "TEXT")
     private String explanation; // 解説
