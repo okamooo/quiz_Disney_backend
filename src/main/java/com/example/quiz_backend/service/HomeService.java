@@ -68,12 +68,14 @@ public class HomeService {
         mode1.setQuizMode("mode1");
         mode1.setQuizModeLabel("選択問題");
         mode1.setQuizStartUrl("/api/v1/quiz/start/select");
+        mode1.setAvailable(true); // ここでは常に利用可能とする
         quizModes.add(mode1);
 
         QuizMode mode2 = new QuizMode();
         mode2.setQuizMode("mode2");
         mode2.setQuizModeLabel("並べ替え問題");
         mode2.setQuizStartUrl("/api/v1/quiz/start/sort");
+        mode2.setAvailable(false); // ここでは常に利用可能とする
         quizModes.add(mode2);
 
         return quizModes;
