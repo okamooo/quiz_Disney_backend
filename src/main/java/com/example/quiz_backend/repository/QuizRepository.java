@@ -12,4 +12,5 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     List<Quiz> findByCategoryId(Long categoryId);
 
+    List<Quiz> findByCategoryIdOrderByIdAsc(Long categoryId);
 }

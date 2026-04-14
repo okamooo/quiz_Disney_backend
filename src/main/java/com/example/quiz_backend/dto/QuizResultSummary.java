@@ -5,11 +5,11 @@ import lombok.Data;
 
 @Data
 @Builder
-public class QuizProgress {
-    private int currentQuestionNumber;
+public class QuizResultSummary {
+    private String quizSessionId;
     private int totalQuestionCount;
-    private int answeredCount;
     private int correctCount;
     private int incorrectCount;
     private int skipCount;
+    private double accuracyRate;
 }

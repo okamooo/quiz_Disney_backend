@@ -3,9 +3,13 @@ package com.example.quiz_backend.controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.quiz_backend.dto.AnswerQuizRequest;
+import com.example.quiz_backend.dto.AnswerQuizResponse;
+import com.example.quiz_backend.dto.StartQuizRequest;
 import com.example.quiz_backend.dto.StartQuizResponse;
 import com.example.quiz_backend.service.QuizService;
 
@@ -19,8 +23,20 @@ public class QuizController {
 
     private final QuizService quizService;
 
+    @PostMapping("/start")
+    public StartQuizResponse startQuiz(@RequestBody StartQuizRequest request) {
+        return quizService.startQuiz(request);
+    }
+
     @PostMapping("/start/category/{categoryId}")
     public StartQuizResponse startQuizByCategory(@PathVariable Long categoryId) {
         return quizService.startQuizByCategory(categoryId);
+    }
+
+    @PostMapping("/{sessionId}/answer")
+    public AnswerQuizResponse answerQuiz(
+            @PathVariable String sessionId,
+            @RequestBody AnswerQuizRequest request) {
+        return quizService.answerQuiz(sessionId, request);
     }
 }
