@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -18,6 +19,9 @@ import com.example.quiz_backend.dto.QuizQuestion;
 import com.example.quiz_backend.dto.QuizResultSummary;
 import com.example.quiz_backend.dto.StartQuizRequest;
 import com.example.quiz_backend.dto.StartQuizResponse;
+import com.example.quiz_backend.exception.QuizNotFoundException;
+import com.example.quiz_backend.exception.QuizSessionNotFoundException;
+import com.example.quiz_backend.exception.UserNotFoundException;
 import com.example.quiz_backend.entity.Quiz;
 import com.example.quiz_backend.entity.QuizSession;
 import com.example.quiz_backend.entity.QuizSessionAnswer;
@@ -38,6 +42,7 @@ public class QuizService {
     private static final String DEFAULT_MODE = "choice";
     private static final String ACTION_ANSWER = "ANSWER";
     private static final String ACTION_SKIP = "SKIP";
+    private static final int SESSION_QUESTION_COUNT = 10;
 
     private final QuizRepository quizRepository;
     private final UserRepository userRepository;
@@ -46,15 +51,21 @@ public class QuizService {
 
     @Transactional
     public StartQuizResponse startQuiz(StartQuizRequest request) {
-        List<Quiz> quizzes = quizRepository.findByCategoryIdOrderByIdAsc(request.getCategoryId());
-        if (quizzes.isEmpty()) {
-            throw new RuntimeException("No quizzes found for category: " + request.getCategoryId());
+        List<Quiz> quizzes = new ArrayList<>(quizRepository.findByCategoryId(request.getCategoryId()));
+        if (quizzes.size() < SESSION_QUESTION_COUNT) {
+            throw new IllegalStateException(
+                    "カテゴリID: " + request.getCategoryId() +
+                            " は最低 " + SESSION_QUESTION_COUNT + " 問必要ですが、現在は " +
+                            quizzes.size() + " 問しかありません");
         }
+
+        Collections.shuffle(quizzes);
+        List<Quiz> sessionQuizzes = new ArrayList<>(quizzes.subList(0, SESSION_QUESTION_COUNT));
 
         User user = null;
         if (request.getUserId() != null && !request.getUserId().isBlank()) {
             user = userRepository.findByUserId(request.getUserId())
-                    .orElseThrow(() -> new RuntimeException("User not found: " + request.getUserId()));
+                    .orElseThrow(() -> new UserNotFoundException(request.getUserId()));
         }
 
         QuizSession session = new QuizSession();
@@ -63,7 +74,10 @@ public class QuizService {
         session.setCategoryId(request.getCategoryId());
         session.setQuizMode(
                 request.getMode() == null || request.getMode().isBlank() ? DEFAULT_MODE : request.getMode());
-        session.setTotalQuestionCount(quizzes.size());
+        session.setQuestionIds(sessionQuizzes.stream()
+                .map(Quiz::getId)
+                .collect(Collectors.toCollection(ArrayList::new)));
+        session.setTotalQuestionCount(sessionQuizzes.size());
         session.setCurrentQuestionNumber(1);
         session.setCorrectCount(0);
         session.setIncorrectCount(0);
@@ -72,53 +86,45 @@ public class QuizService {
         session.setStartedAt(LocalDateTime.now());
         quizSessionRepository.save(session);
 
-        Quiz firstQuiz = quizzes.get(0);
+        Quiz firstQuiz = sessionQuizzes.get(0);
 
         return StartQuizResponse.builder()
                 .quizSessionId(session.getId())
                 .quizId(firstQuiz.getId())
                 .progress(buildProgress(session))
-                .question(buildQuestion(firstQuiz, 1, quizzes.size()))
+                .question(buildQuestion(firstQuiz, 1, sessionQuizzes.size()))
                 .build();
-    }
-
-    @Transactional
-    public StartQuizResponse startQuizByCategory(Long categoryId) {
-        StartQuizRequest request = new StartQuizRequest();
-        request.setCategoryId(categoryId);
-        request.setMode(DEFAULT_MODE);
-        return startQuiz(request);
     }
 
     @Transactional
     public AnswerQuizResponse answerQuiz(String sessionId, AnswerQuizRequest request) {
         QuizSession session = quizSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Quiz session not found: " + sessionId));
+                .orElseThrow(() -> new QuizSessionNotFoundException(sessionId));
 
         if (!STATUS_IN_PROGRESS.equals(session.getStatus())) {
-            throw new RuntimeException("Quiz session is not in progress: " + sessionId);
+            throw new IllegalStateException("クイズセッションは進行中ではありません。sessionId: " + sessionId);
         }
 
-        List<Quiz> quizzes = quizRepository.findByCategoryIdOrderByIdAsc(session.getCategoryId());
-        if (quizzes.isEmpty()) {
-            throw new RuntimeException("No quizzes found for category: " + session.getCategoryId());
+        List<Long> questionIds = session.getQuestionIds();
+        if (questionIds == null || questionIds.isEmpty()) {
+            throw new IllegalStateException("クイズセッションに出題対象の問題が設定されていません。sessionId: " + sessionId);
         }
 
         int currentQuestionNumber = session.getCurrentQuestionNumber();
-        if (currentQuestionNumber < 1 || currentQuestionNumber > quizzes.size()) {
-            throw new RuntimeException("Invalid current question number: " + currentQuestionNumber);
+        if (currentQuestionNumber < 1 || currentQuestionNumber > questionIds.size()) {
+            throw new IllegalStateException("現在の問題番号が不正です。currentQuestionNumber: " + currentQuestionNumber);
         }
 
-        Quiz currentQuiz = quizzes.get(currentQuestionNumber - 1);
+        Quiz currentQuiz = findQuizOrThrow(questionIds.get(currentQuestionNumber - 1));
         if (!currentQuiz.getId().equals(request.getQuestionId())) {
-            throw new RuntimeException("Question does not match the current quiz session state");
+            throw new IllegalStateException("リクエストされた問題が現在のクイズセッション状態と一致しません。");
         }
 
         String action = normalizeAction(request.getAction());
         boolean skipped = ACTION_SKIP.equals(action);
         String selectedChoiceText = skipped ? null : request.getSelectedChoiceText();
         if (!skipped && (selectedChoiceText == null || selectedChoiceText.isBlank())) {
-            throw new RuntimeException("selectedChoiceText is required when action is ANSWER");
+            throw new IllegalArgumentException("回答時は selectedChoiceText が必須です。");
         }
 
         boolean isCorrect = !skipped && currentQuiz.getQuestionWord().equals(selectedChoiceText);
@@ -129,18 +135,12 @@ public class QuizService {
         answer.setQuestionOrder(currentQuestionNumber);
         answer.setSelectedChoiceText(selectedChoiceText);
         answer.setCorrectChoiceText(currentQuiz.getQuestionWord());
-        answer.setIsCorrect(skipped ? null : isCorrect);
+        answer.setIsCorrect(isCorrect);
         answer.setIsSkipped(skipped);
         answer.setAnsweredAt(LocalDateTime.now());
         quizSessionAnswerRepository.save(answer);
 
-        if (skipped) {
-            session.setSkipCount(session.getSkipCount() + 1);
-        } else if (isCorrect) {
-            session.setCorrectCount(session.getCorrectCount() + 1);
-        } else {
-            session.setIncorrectCount(session.getIncorrectCount() + 1);
-        }
+        updateAnswerCounts(session, skipped, isCorrect);
 
         int nextQuestionNumber = currentQuestionNumber + 1;
         boolean finished = nextQuestionNumber > session.getTotalQuestionCount();
@@ -169,7 +169,7 @@ public class QuizService {
         session.setCurrentQuestionNumber(nextQuestionNumber);
         quizSessionRepository.save(session);
 
-        Quiz nextQuiz = quizzes.get(nextQuestionNumber - 1);
+        Quiz nextQuiz = findQuizOrThrow(questionIds.get(nextQuestionNumber - 1));
 
         return AnswerQuizResponse.builder()
                 .action(action)
@@ -184,6 +184,17 @@ public class QuizService {
                 .nextQuestion(buildQuestion(nextQuiz, nextQuestionNumber, session.getTotalQuestionCount()))
                 .finished(false)
                 .build();
+    }
+
+    private void updateAnswerCounts(QuizSession session, boolean skipped, boolean isCorrect) {
+        if (skipped) {
+            session.setSkipCount(session.getSkipCount() + 1);
+            session.setIncorrectCount(session.getIncorrectCount() + 1);
+        } else if (isCorrect) {
+            session.setCorrectCount(session.getCorrectCount() + 1);
+        } else {
+            session.setIncorrectCount(session.getIncorrectCount() + 1);
+        }
     }
 
     QuizQuestion buildQuestion(Quiz quiz, int currentQuestionNumber, int totalQuestionCount) {
@@ -219,6 +230,11 @@ public class QuizService {
                 .build();
     }
 
+    private Quiz findQuizOrThrow(Long quizId) {
+        return quizRepository.findById(quizId)
+                .orElseThrow(() -> new QuizNotFoundException(quizId));
+    }
+
     private QuizResultSummary buildResultSummary(QuizSession session) {
         double accuracyRate = session.getTotalQuestionCount() == 0
                 ? 0.0
@@ -244,6 +260,6 @@ public class QuizService {
             return normalized;
         }
 
-        throw new RuntimeException("Unsupported action: " + action);
+        throw new IllegalArgumentException("未対応のアクションです。action: " + action);
     }
 }

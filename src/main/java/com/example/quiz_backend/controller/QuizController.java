@@ -28,11 +28,6 @@ public class QuizController {
         return quizService.startQuiz(request);
     }
 
-    @PostMapping("/start/category/{categoryId}")
-    public StartQuizResponse startQuizByCategory(@PathVariable Long categoryId) {
-        return quizService.startQuizByCategory(categoryId);
-    }
-
     @PostMapping("/{sessionId}/answer")
     public AnswerQuizResponse answerQuiz(
             @PathVariable String sessionId,
