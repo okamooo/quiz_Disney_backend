@@ -4,9 +4,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,14 +21,14 @@ import com.example.quiz_backend.dto.QuizResultSummary;
 import com.example.quiz_backend.dto.QuizSessionResultResponse;
 import com.example.quiz_backend.dto.StartQuizRequest;
 import com.example.quiz_backend.dto.StartQuizResponse;
-import com.example.quiz_backend.exception.QuizNotFoundException;
-import com.example.quiz_backend.exception.QuizSessionNotFinishedException;
-import com.example.quiz_backend.exception.QuizSessionNotFoundException;
-import com.example.quiz_backend.exception.UserNotFoundException;
 import com.example.quiz_backend.entity.Quiz;
 import com.example.quiz_backend.entity.QuizSession;
 import com.example.quiz_backend.entity.QuizSessionAnswer;
 import com.example.quiz_backend.entity.User;
+import com.example.quiz_backend.exception.QuizNotFoundException;
+import com.example.quiz_backend.exception.QuizSessionNotFinishedException;
+import com.example.quiz_backend.exception.QuizSessionNotFoundException;
+import com.example.quiz_backend.exception.UserNotFoundException;
 import com.example.quiz_backend.repository.QuizRepository;
 import com.example.quiz_backend.repository.QuizSessionAnswerRepository;
 import com.example.quiz_backend.repository.QuizSessionRepository;
@@ -138,7 +138,6 @@ public class QuizService {
         answer.setSelectedChoiceText(selectedChoiceText);
         answer.setCorrectChoiceText(currentQuiz.getQuestionWord());
         answer.setIsCorrect(isCorrect);
-        answer.setIsSkipped(skipped);
         answer.setAnsweredAt(LocalDateTime.now());
         quizSessionAnswerRepository.save(answer);
 
@@ -202,7 +201,7 @@ public class QuizService {
                 .map(answer -> QuizResultItem.builder()
                         .questionNumber(answer.getQuestionOrder())
                         .phraseText(answer.getQuiz().getPhrase())
-                        .isCorrect(answer.getIsCorrect())
+                        .isCorrect(Boolean.TRUE.equals(answer.getIsCorrect()))
                         .correctWord(answer.getCorrectChoiceText())
                         .build())
                 .collect(Collectors.toList());

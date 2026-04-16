@@ -40,9 +40,6 @@ public class QuizSessionAnswer {
     @Column(name = "is_correct")
     private Boolean isCorrect;
 
-    @Column(name = "is_skipped")
-    private Boolean isSkipped;
-
     @Column(name = "answered_at")
     private LocalDateTime answeredAt;
 }
