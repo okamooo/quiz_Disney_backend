@@ -16,10 +16,13 @@ import com.example.quiz_backend.dto.AnswerQuizResponse;
 import com.example.quiz_backend.dto.QuizChoice;
 import com.example.quiz_backend.dto.QuizProgress;
 import com.example.quiz_backend.dto.QuizQuestion;
+import com.example.quiz_backend.dto.QuizResultItem;
 import com.example.quiz_backend.dto.QuizResultSummary;
+import com.example.quiz_backend.dto.QuizSessionResultResponse;
 import com.example.quiz_backend.dto.StartQuizRequest;
 import com.example.quiz_backend.dto.StartQuizResponse;
 import com.example.quiz_backend.exception.QuizNotFoundException;
+import com.example.quiz_backend.exception.QuizSessionNotFinishedException;
 import com.example.quiz_backend.exception.QuizSessionNotFoundException;
 import com.example.quiz_backend.exception.UserNotFoundException;
 import com.example.quiz_backend.entity.Quiz;
@@ -182,6 +185,32 @@ public class QuizService {
                 .progress(buildProgress(session))
                 .nextQuestion(buildQuestion(nextQuiz, nextQuestionNumber, session.getTotalQuestionCount()))
                 .finished(false)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public QuizSessionResultResponse getQuizResult(String sessionId) {
+        QuizSession session = quizSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new QuizSessionNotFoundException(sessionId));
+
+        if (!STATUS_FINISHED.equals(session.getStatus())) {
+            throw new QuizSessionNotFinishedException(sessionId);
+        }
+
+        List<QuizResultItem> results = quizSessionAnswerRepository.findByQuizSessionIdOrderByQuestionOrderAsc(sessionId)
+                .stream()
+                .map(answer -> QuizResultItem.builder()
+                        .questionNumber(answer.getQuestionOrder())
+                        .phraseText(answer.getQuiz().getPhrase())
+                        .isCorrect(answer.getIsCorrect())
+                        .correctWord(answer.getCorrectChoiceText())
+                        .build())
+                .collect(Collectors.toList());
+
+        return QuizSessionResultResponse.builder()
+                .totalQuestionCount(session.getTotalQuestionCount())
+                .correctCount(session.getCorrectCount())
+                .results(results)
                 .build();
     }
 
