@@ -10,6 +10,4 @@ public class QuizResultSummary {
     private int totalQuestionCount;
     private int correctCount;
     private int incorrectCount;
-    private int skipCount;
-    private double accuracyRate;
 }

@@ -81,7 +81,6 @@ public class QuizService {
         session.setCurrentQuestionNumber(1);
         session.setCorrectCount(0);
         session.setIncorrectCount(0);
-        session.setSkipCount(0);
         session.setStatus(STATUS_IN_PROGRESS);
         session.setStartedAt(LocalDateTime.now());
         quizSessionRepository.save(session);
@@ -188,7 +187,6 @@ public class QuizService {
 
     private void updateAnswerCounts(QuizSession session, boolean skipped, boolean isCorrect) {
         if (skipped) {
-            session.setSkipCount(session.getSkipCount() + 1);
             session.setIncorrectCount(session.getIncorrectCount() + 1);
         } else if (isCorrect) {
             session.setCorrectCount(session.getCorrectCount() + 1);
@@ -217,7 +215,7 @@ public class QuizService {
     }
 
     QuizProgress buildProgress(QuizSession session) {
-        int answeredCount = session.getCorrectCount() + session.getIncorrectCount() + session.getSkipCount();
+        int answeredCount = session.getCorrectCount() + session.getIncorrectCount();
         int currentQuestionNumber = Math.min(session.getCurrentQuestionNumber(), session.getTotalQuestionCount());
 
         return QuizProgress.builder()
@@ -226,7 +224,6 @@ public class QuizService {
                 .answeredCount(answeredCount)
                 .correctCount(session.getCorrectCount())
                 .incorrectCount(session.getIncorrectCount())
-                .skipCount(session.getSkipCount())
                 .build();
     }
 
@@ -236,17 +233,11 @@ public class QuizService {
     }
 
     private QuizResultSummary buildResultSummary(QuizSession session) {
-        double accuracyRate = session.getTotalQuestionCount() == 0
-                ? 0.0
-                : (double) session.getCorrectCount() / session.getTotalQuestionCount() * 100;
-
         return QuizResultSummary.builder()
                 .quizSessionId(session.getId())
                 .totalQuestionCount(session.getTotalQuestionCount())
                 .correctCount(session.getCorrectCount())
                 .incorrectCount(session.getIncorrectCount())
-                .skipCount(session.getSkipCount())
-                .accuracyRate(accuracyRate)
                 .build();
     }
 

@@ -53,8 +53,6 @@ public class QuizSession {
     @Column(name = "incorrect_count")
     private Integer incorrectCount;
 
-    @Column(name = "skip_count")
-    private Integer skipCount;
 
     @Column(name = "status")
     private String status;
