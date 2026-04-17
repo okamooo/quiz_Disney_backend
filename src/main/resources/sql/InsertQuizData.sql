@@ -1,9 +1,14 @@
+-- クイズ関連データをまとめてリセット
+-- 参照している子テーブルも含めて同時に空にする
+TRUNCATE TABLE quiz_results, quiz_session_answers, choices, quizzes RESTART IDENTITY;
+
+-- データ投入
 INSERT INTO quizzes (category_id, phrase, translation, question_word, meaning, wrong_word1, wrong_word2, wrong_word3, explanation, created_at, updated_at) VALUES 
 (1, 'I''ll make a man out of you.', '「お前を一人前にしてやる！」（ムーラン）', 'make', '作り変える', 'keep', 'find', 'take', '「make A (out of) B」で「BからAを作り出す（一人前にする）」という熟語です。', NOW(), NOW()),
 (1, 'Test the limits and break through.', '「自分の限界に挑戦して、それをさらに越えていけ。」（アナと雪の女王）', 'limits', '限界', 'dreams', 'goals', 'starts', '「limit」は境界や制限。自分の能力の限界に挑戦するという意味です。', NOW(), NOW()),
 (1, 'Not to be deceived by appearances, for beauty is found within.', '「外見に騙されてはいけない。美は内面に宿るのだから。」（美女と野獣）', 'deceived', '騙される', 'believed', 'helped', 'called', '「deceive（騙す）」の受身形。外見に惑わされてはいけないという教訓です。', NOW(), NOW()),
 (1, 'I’m not a dumb bunny.', '「私はマヌケなウサギなんかじゃない！」（ズートピア）', 'dumb', 'まぬけな', 'smart', 'fast', 'cute', '本来は「口がきけない」ですが、口語では「馬鹿な」という強い意味で使われます。', NOW(), NOW()),
-(1, 'We finish each other''s... Sandwiches!', '「私たちは、お互いの…サンドイッチを！（言葉を言い当てる）」（アナと雪の女王）', 'sentences', '文・言葉', 'stories', 'meals', 'dreams', '本来は「相手の言葉(sentences)を最後まで言う」という熟語を崩したジョークです。', NOW(), NOW()),
+(1, 'We finish each other''s... sentences!', '「私たちは、お互いの…サンドイッチを！（言葉を言い当てる）」（アナと雪の女王）', 'sentences', '文・言葉', 'sandwiches', 'meals', 'dreams', '本来は「相手の言葉(sentences)を最後まで言う」という熟語を崩したジョークです。', NOW(), NOW()),
 (1, 'And maybe it''s the party talking or the chocolate fondue.', '「もしかしたら、パーティーのノリでこんなこと言ってるだけかもしれないけど」（アナと雪の女王）', 'talking', '言わせている', 'dancing', 'singing', 'sleeping', '「無生物 + talking」で「〜のせいでそう言っているだけ」という表現です。', NOW(), NOW()),
 (1, 'Isn''t it neat?', '「素敵じゃない？」（アリエル）', 'neat', '素晴らしい', 'dirty', 'small', 'hard', '「きちんとした」以外に、口語で「素敵」「かっこいい」という意味で使われます。', NOW(), NOW()),
 (1, 'You want thingamabobs? I got twenty.', '「何か特別なものが欲しい？私は20個持っているわ」（アリエル）', 'twenty', '20個', 'twelve', 'thirty', 'two', 'アリエルが地上の道具（名前も知らない物）をたくさん持っていることを表しています。', NOW(), NOW()),
