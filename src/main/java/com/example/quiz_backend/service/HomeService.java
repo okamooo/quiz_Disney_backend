@@ -7,58 +7,83 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.example.quiz_backend.dto.HomeResponse;
+import com.example.quiz_backend.dto.LearningHistory;
+import com.example.quiz_backend.dto.LearningHistoryAnswer;
 import com.example.quiz_backend.dto.QuizMode;
-import com.example.quiz_backend.entity.QuizResult;
+import com.example.quiz_backend.entity.QuizSession;
+import com.example.quiz_backend.entity.QuizSessionAnswer;
 import com.example.quiz_backend.entity.User;
-import com.example.quiz_backend.repository.QuizResultRepository;
+import com.example.quiz_backend.repository.QuizSessionAnswerRepository;
+import com.example.quiz_backend.repository.QuizSessionRepository;
 import com.example.quiz_backend.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * ホーム画面のサービスクラス
- * 
- * @author Takuya Okamoto
- */
 @Service
 @RequiredArgsConstructor
 public class HomeService {
 
+    private static final String STATUS_FINISHED = "FINISHED";
+
     private final UserRepository userRepository;
-    private final QuizResultRepository quizResultRepository;
+    private final QuizSessionRepository quizSessionRepository;
+    private final QuizSessionAnswerRepository quizSessionAnswerRepository;
 
     public HomeResponse getHomeData(String loginId) {
         HomeResponse response = new HomeResponse();
 
         Optional<User> userOpt = userRepository.findByUserId(loginId);
         if (userOpt.isEmpty()) {
-            return response; // ユーザーが見つからない場合は空のレスポンスを返す
+            return response;
         }
         User user = userOpt.get();
 
         response.setUserId(user.getUserId());
         response.setUserName(user.getName());
 
-        List<QuizResult> quizResults = quizResultRepository.findByUserOrderByAnsweredAtDesc(user);
+        List<QuizSession> sessions = quizSessionRepository.findByUserAndStatusOrderByStartedAtDesc(user,
+                STATUS_FINISHED);
+        List<LearningHistory> learningHistories = new ArrayList<>();
 
-        int totalSolvedCount = quizResults.size();
-        int correctCount = (int) quizResults.stream().filter(QuizResult::getIsCorrect).count();
-        int incorrectCount = totalSolvedCount - correctCount;
-        double accuracyRate = totalSolvedCount > 0 ? (double) correctCount / totalSolvedCount * 100 : 0.0;
+        for (QuizSession session : sessions) {
+            int sessionSolvedCount = defaultInt(session.getTotalQuestionCount());
+            int sessionCorrectCount = defaultInt(session.getCorrectCount());
+            int sessionIncorrectCount = defaultInt(session.getIncorrectCount());
 
-        response.setTotalSolvedCount(totalSolvedCount);
-        response.setCorrectCount(correctCount);
-        response.setIncorrectCount(incorrectCount);
-        response.setAccuracyRate(accuracyRate);
+            List<LearningHistoryAnswer> answers = quizSessionAnswerRepository
+                    .findByQuizSessionIdOrderByQuestionOrderAsc(session.getId())
+                    .stream()
+                    .map(this::buildLearningHistoryAnswer)
+                    .toList();
 
-        if (!quizResults.isEmpty()) {
-            response.setLastPlayedAt(quizResults.get(0).getAnsweredAt().toString());
+            learningHistories.add(LearningHistory.builder()
+                    .historyId(session.getId())
+                    .playedAt(session.getStartedAt().toString())
+                    .solvedCount(sessionSolvedCount)
+                    .correctCount(sessionCorrectCount)
+                    .incorrectCount(sessionIncorrectCount)
+                    .answers(answers)
+                    .build());
         }
 
+        response.setLearningHistories(learningHistories);
         response.setQuizModes(createDefaultQuizModes());
         response.setHasAvailableQuiz(true);
 
         return response;
+    }
+
+    private LearningHistoryAnswer buildLearningHistoryAnswer(QuizSessionAnswer answer) {
+        return LearningHistoryAnswer.builder()
+                .questionNumber(defaultInt(answer.getQuestionOrder()))
+                .phraseText(answer.getQuiz().getPhrase())
+                .correct(Boolean.TRUE.equals(answer.getIsCorrect()))
+                .correctWord(answer.getCorrectChoiceText())
+                .build();
+    }
+
+    private int defaultInt(Integer value) {
+        return value != null ? value : 0;
     }
 
     private List<QuizMode> createDefaultQuizModes() {
@@ -68,17 +93,16 @@ public class HomeService {
         mode1.setQuizMode("mode1");
         mode1.setQuizModeLabel("選択問題");
         mode1.setQuizStartUrl("/api/v1/quiz/start/select");
-        mode1.setAvailable(true); // ここでは常に利用可能とする
+        mode1.setAvailable(true);
         quizModes.add(mode1);
 
         QuizMode mode2 = new QuizMode();
         mode2.setQuizMode("mode2");
         mode2.setQuizModeLabel("並べ替え問題");
         mode2.setQuizStartUrl("/api/v1/quiz/start/sort");
-        mode2.setAvailable(false); // ここでは常に利用可能とする
+        mode2.setAvailable(false);
         quizModes.add(mode2);
 
         return quizModes;
     }
-
 }

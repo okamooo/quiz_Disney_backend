@@ -13,9 +13,4 @@ public class HomeResponse {
     private QuizMode selectedQuizMode;
     private boolean hasAvailableQuiz;
     private List<LearningHistory> learningHistories;
-    private int totalSolvedCount;
-    private int correctCount;
-    private int incorrectCount;
-    private String lastPlayedAt;
-    private double accuracyRate;
 }
