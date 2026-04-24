@@ -19,7 +19,8 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/quiz")
-@CrossOrigin(origins = "http://localhost:5173")
+// @CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = { "http://localhost:5173", "http://3.112.81.98" })
 @RequiredArgsConstructor
 public class QuizController {
 
